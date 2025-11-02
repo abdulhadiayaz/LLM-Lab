@@ -8,12 +8,56 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// TODO: Update schema
 model Experiment {
   id        String   @id @default(uuid())
   prompt    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  responses Response[]
+
   @@map("experiments")
+}
+
+model Response {
+  id              String   @id @default(uuid())
+  experimentId    String
+  experiment      Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  // LLM Parameters
+  temperature     Float
+  topP            Float
+  topK            Int?
+  maxTokens       Int?
+
+  // Generated Content
+  content         String
+  rawResponse     Json?     // Store full API response
+
+  // Quality Metrics
+  metrics         ResponseMetrics?
+
+  createdAt       DateTime @default(now())
+
+  @@map("responses")
+}
+
+model ResponseMetrics {
+  id              String   @id @default(uuid())
+  responseId      String   @unique
+  response        Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  // Custom Metrics
+  coherenceScore  Float    // 0-1
+  completenessScore Float  // 0-1
+  lengthScore     Float    // 0-1 (based on appropriateness)
+  readabilityScore Float   // 0-1 (Flesch reading ease)
+  structureScore  Float    // 0-1 (detects paragraphs, lists, etc.)
+
+  // Aggregate
+  overallScore    Float    // Weighted average
+
+  createdAt       DateTime @default(now())
+
+  @@map("response_metrics")
 }
