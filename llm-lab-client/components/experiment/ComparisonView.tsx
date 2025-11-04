@@ -88,7 +88,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
                   <th className="px-4 py-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-100 z-20">
                     Parameter
                   </th>
-                  {selectedResponses.map((response, idx) => (
+                  {selectedResponses.map((response) => (
                     <th
                       key={response.id}
                       className="px-4 py-3 text-center font-semibold text-gray-700 min-w-[200px] bg-gray-100"

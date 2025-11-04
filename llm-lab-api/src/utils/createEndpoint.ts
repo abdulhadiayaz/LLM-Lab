@@ -38,11 +38,12 @@ const errorHandler =
     }
   };
 
+type ResultHandlerParams = Parameters<typeof defaultResultHandler.handler>[0];
+
 const customResultHandler = {
   getPositiveResponse: defaultResultHandler.getPositiveResponse,
   getNegativeResponse: defaultResultHandler.getNegativeResponse,
-  //eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async handler(args: any) {
+  async handler(args: ResultHandlerParams) {
     const { error, request, input, response } = args;
     if (error instanceof OutputValidationError) {
       console.error("Output validation error:", {

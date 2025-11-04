@@ -33,7 +33,10 @@ const ScoreBar: React.FC<{
       </div>
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div
-          className={`${colorClasses[color as keyof typeof colorClasses] || colorClasses.indigo} h-2 rounded-full transition-all duration-300`}
+          className={`${
+            colorClasses[color as keyof typeof colorClasses] ||
+            colorClasses.indigo
+          } h-2 rounded-full transition-all duration-300`}
           style={{ width: `${value * 100}%` }}
         />
       </div>
@@ -88,7 +91,10 @@ export const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
         <div className="space-y-3">
           <ScoreBar label="Coherence" value={metrics.coherenceScore} />
           <ScoreBar label="Completeness" value={metrics.completenessScore} />
-          <ScoreBar label="Length Appropriateness" value={metrics.lengthScore} />
+          <ScoreBar
+            label="Length Appropriateness"
+            value={metrics.lengthScore}
+          />
           <ScoreBar label="Readability" value={metrics.readabilityScore} />
           <ScoreBar label="Structure" value={metrics.structureScore} />
         </div>
@@ -96,4 +102,3 @@ export const MetricsDisplay: React.FC<MetricsDisplayProps> = ({
     </Card>
   );
 };
-

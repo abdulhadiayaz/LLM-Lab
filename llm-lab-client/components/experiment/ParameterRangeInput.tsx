@@ -18,7 +18,6 @@ export const ParameterRangeInput: React.FC<ParameterRangeInputProps> = ({
   onChange,
   min = 0,
   max = 1,
-  step = 0.1,
   placeholder,
 }) => {
   const [inputValue, setInputValue] = useState(

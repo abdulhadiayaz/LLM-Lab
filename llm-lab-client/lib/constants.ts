@@ -1,9 +1,9 @@
-export interface ParameterRanges {
+export type ParameterRanges = {
   temperature: number[];
   topP: number[];
   topK: number[];
   maxOutputTokens: number[];
-}
+};
 
 export const DEFAULT_PARAMETER_RANGES: ParameterRanges = {
   temperature: [0.1, 0.5, 0.9],

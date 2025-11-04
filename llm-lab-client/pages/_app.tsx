@@ -26,6 +26,8 @@ const App = ({
           name="description"
           content="Experiment with LLM parameters and analyze response quality"
         />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="shortcut icon" href="/favicon.ico" />
       </Head>
       <Component />
     </QueryClientProvider>
