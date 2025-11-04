@@ -21,7 +21,7 @@ export interface GeminiResponse {
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
-  private model = "gemini-2.5-flash";
+  private model = "gemini-2.0-flash-lite	";
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -42,11 +42,15 @@ export class GeminiService {
 
   async generateResponse(
     prompt: string,
-    parameters: GeminiParameters = {}
+    parameters: GeminiParameters = {},
+    retryCount = 0
   ): Promise<GeminiResponse> {
     if (!this.genAI) {
       throw new Error("Gemini API key not configured");
     }
+
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second base delay
 
     try {
       const {
@@ -82,20 +86,48 @@ export class GeminiService {
       };
     } catch (error) {
       const err = error as Error;
+      const errorMessage = err.message.toLowerCase();
 
-      if (err.message.includes("429") || err.message.includes("rate limit")) {
+      if (
+        (errorMessage.includes("503") ||
+          errorMessage.includes("service unavailable") ||
+          errorMessage.includes("try again later")) &&
+        retryCount < maxRetries
+      ) {
+        const delay = baseDelay * Math.pow(2, retryCount);
+        console.log(
+          `Gemini API overloaded (503). Retrying in ${delay}ms (attempt ${
+            retryCount + 1
+          }/${maxRetries})...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return this.generateResponse(prompt, parameters, retryCount + 1);
+      }
+
+      if (errorMessage.includes("429") || errorMessage.includes("rate limit")) {
         throw new Error("Rate limit exceeded. Please try again later.");
       }
 
       if (
-        err.message.includes("quota") ||
-        err.message.includes("RESOURCE_EXHAUSTED")
+        errorMessage.includes("quota") ||
+        errorMessage.includes("resource_exhausted")
       ) {
         throw new Error("API quota exceeded. Please check your billing.");
       }
 
-      if (err.message.includes("API key") || err.message.includes("401")) {
+      if (errorMessage.includes("api key") || errorMessage.includes("401")) {
         throw new Error("Invalid API key. Please check your GEMINI_API_KEY.");
+      }
+
+      if (
+        (errorMessage.includes("503") ||
+          errorMessage.includes("service unavailable") ||
+          errorMessage.includes("overloaded")) &&
+        retryCount >= maxRetries
+      ) {
+        throw new Error(
+          "The model is currently overloaded. Please try again in a few moments."
+        );
       }
 
       console.error("Gemini API error:", err);
@@ -114,13 +146,17 @@ export class GeminiService {
       response: GeminiResponse;
     }> = [];
 
-    for (const params of parameterCombinations) {
+    for (let i = 0; i < parameterCombinations.length; i++) {
+      const params = parameterCombinations[i];
+      if (!params) continue;
+
       try {
         const response = await this.generateResponse(prompt, params);
         results.push({ parameters: params, response });
 
-        if (parameterCombinations.length > 1) {
-          await new Promise((resolve) => setTimeout(resolve, 200));
+        if (i < parameterCombinations.length - 1) {
+          const delay = parameterCombinations.length > 10 ? 500 : 300;
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       } catch (error) {
         const err = error as Error;
