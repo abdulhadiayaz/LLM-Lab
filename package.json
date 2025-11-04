@@ -2,7 +2,7 @@
   "scripts": {
     "postinstall": "npm install --prefix llm-lab-api && npm run gen-client --prefix llm-lab-api",
     "build": "npm run build --prefix llm-lab-api",
-    "start": "npm run start --prefix llm-lab-api",
+    "start": "npm run migrate:deploy --prefix llm-lab-api && npm run start --prefix llm-lab-api",
     "dev": "npm run dev --prefix llm-lab-api"
   }
 }
