@@ -11,9 +11,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          "inline-flex items-center justify-center rounded-md font-medium transition-colors",
+          "inline-flex items-center justify-center rounded-md font-medium transition-colors cursor-pointer",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed",
           {
             "bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500":
               variant === "default",
@@ -27,14 +27,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             "h-10 px-4 text-base": size === "md",
             "h-12 px-6 text-lg": size === "lg",
           },
-          className,
+          className
         )}
         ref={ref}
         {...props}
       />
     );
-  },
+  }
 );
 
 Button.displayName = "Button";
-

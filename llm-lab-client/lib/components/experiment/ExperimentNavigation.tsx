@@ -32,7 +32,7 @@ export const ExperimentNavigation: React.FC<ExperimentNavigationProps> = ({
           <div className="flex items-center gap-4">
             <button
               onClick={onToggleSidebar}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 cursor-pointer"
               title={showSidebar ? "Hide sidebar" : "Show sidebar"}
             >
               ☰
@@ -43,7 +43,7 @@ export const ExperimentNavigation: React.FC<ExperimentNavigationProps> = ({
                 size="sm"
                 onClick={onExportJSON}
                 disabled={isExporting}
-                className="hidden sm:flex"
+                className="hidden sm:flex cursor-pointer"
               >
                 Export JSON
               </Button>
@@ -52,7 +52,7 @@ export const ExperimentNavigation: React.FC<ExperimentNavigationProps> = ({
                 size="sm"
                 onClick={onExportCSV}
                 disabled={isExporting}
-                className="hidden sm:flex"
+                className="hidden sm:flex cursor-pointer"
               >
                 Export CSV
               </Button>

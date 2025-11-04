@@ -68,7 +68,7 @@ export const ExperimentSidebar: React.FC<ExperimentSidebarProps> = ({
                         <button
                           key={response.id}
                           onClick={() => onSelectResponse(response.id)}
-                          className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
                             selectedIds.includes(response.id)
                               ? "bg-indigo-50 border-indigo-300 shadow-sm"
                               : "bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300"

@@ -81,7 +81,7 @@ export const ParameterRangeInput: React.FC<ParameterRangeInputProps> = ({
                   onChange(newValues);
                   setInputValue(newValues.join(", "));
                 }}
-                className="ml-1.5 inline-flex rounded-full text-indigo-600 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="ml-1.5 inline-flex rounded-full text-indigo-600 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
                 <span className="sr-only">Remove</span>
                 <svg
