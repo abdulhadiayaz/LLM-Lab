@@ -280,6 +280,20 @@ export const experimentRoutes = {
       const storedResponses = [];
       for (const { parameters, response } of geminiResults) {
         try {
+          // Skip error responses - don't store them as valid responses
+          if (
+            response.finishReason === "ERROR" ||
+            response.content.startsWith("Error:") ||
+            response.content.includes("Rate limit exceeded") ||
+            response.content.includes("API quota exceeded") ||
+            response.content.includes("Invalid API key")
+          ) {
+            console.warn(
+              `Skipping error response for parameters ${JSON.stringify(parameters)}: ${response.content}`
+            );
+            continue;
+          }
+
           const metrics = calculateMetrics(response.content, {
             prompt: experiment.prompt,
           });

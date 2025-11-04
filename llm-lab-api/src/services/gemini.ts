@@ -21,7 +21,7 @@ export interface GeminiResponse {
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
-  private model = "gemini-2.0-flash-lite	";
+  private model = "gemini-2.0-flash";
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -160,19 +160,29 @@ export class GeminiService {
         }
       } catch (error) {
         const err = error as Error;
+        const errorMessage = err.message.toLowerCase();
+
+        // For rate limit and quota errors, skip storing as they're not valid responses
+        // These should be handled by retries or user notification, not stored as content
+        if (
+          errorMessage.includes("rate limit") ||
+          errorMessage.includes("quota exceeded") ||
+          errorMessage.includes("api quota") ||
+          errorMessage.includes("invalid api key")
+        ) {
+          console.error(
+            `Skipping response for parameters ${JSON.stringify(params)} due to API error: ${err.message}`
+          );
+          // Don't add to results - these are API errors, not response content
+          continue;
+        }
+
+        // For other errors, log but don't store as response content
         console.error(
           `Failed to generate response for parameters ${JSON.stringify(params)}:`,
           err
         );
-
-        results.push({
-          parameters: params,
-          response: {
-            content: `Error: ${err.message}`,
-            rawResponse: { error: err.message },
-            finishReason: "ERROR",
-          },
-        });
+        // Skip storing error responses - they'll be logged but not included in results
       }
     }
 
