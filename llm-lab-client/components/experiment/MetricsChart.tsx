@@ -15,9 +15,9 @@ import {
 import { Response } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface MetricsChartProps {
+type MetricsChartProps = {
   responses: Response[];
-}
+};
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -61,16 +61,24 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ responses }) => {
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip />
+              <YAxis
+                domain={[0, 100]}
+                tickFormatter={(value) => {
+                  const formatted = value.toFixed(2);
+                  return formatted.replace(/\.?0+$/, "");
+                }}
+              />
+              <Tooltip
+                formatter={(value: number) => {
+                  const formatted = value.toFixed(2);
+                  return `${formatted.replace(/\.?0+$/, "")}%`;
+                }}
+                labelFormatter={(label) => label}
+              />
               <Legend />
               <Bar dataKey="overall" fill="#6366f1" name="Overall" />
               <Bar dataKey="coherence" fill="#10b981" name="Coherence" />
-              <Bar
-                dataKey="completeness"
-                fill="#f59e0b"
-                name="Completeness"
-              />
+              <Bar dataKey="completeness" fill="#f59e0b" name="Completeness" />
               <Bar dataKey="length" fill="#ef4444" name="Length" />
               <Bar dataKey="readability" fill="#8b5cf6" name="Readability" />
               <Bar dataKey="structure" fill="#06b6d4" name="Structure" />
@@ -92,28 +100,40 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ responses }) => {
                 dataKey="temperature"
                 name="Temperature"
                 domain={[0, 2]}
+                tickFormatter={(value) => {
+                  const formatted = value.toFixed(2);
+                  return formatted.replace(/\.?0+$/, "");
+                }}
               />
               <YAxis
                 type="number"
                 dataKey="overallScore"
                 name="Overall Score"
                 domain={[0, 100]}
+                tickFormatter={(value) => {
+                  const formatted = value.toFixed(2);
+                  return formatted.replace(/\.?0+$/, "");
+                }}
               />
               <Tooltip
                 cursor={{ strokeDasharray: "3 3" }}
                 content={({ active, payload }) => {
                   if (active && payload && payload[0]) {
                     const data = payload[0].payload;
+                    const formatNumber = (num: number) => {
+                      const formatted = num.toFixed(2);
+                      return formatted.replace(/\.?0+$/, "");
+                    };
                     return (
                       <div className="bg-white p-3 border border-gray-200 rounded shadow">
                         <p className="font-semibold">
-                          Temp: {data.temperature.toFixed(2)}
+                          Temp: {formatNumber(data.temperature)}
                         </p>
                         <p className="text-sm">
-                          Score: {data.overallScore.toFixed(1)}%
+                          Score: {formatNumber(data.overallScore)}%
                         </p>
                         <p className="text-xs text-gray-500">
-                          Top P: {data.topP.toFixed(2)}
+                          Top P: {formatNumber(data.topP)}
                         </p>
                       </div>
                     );
@@ -136,4 +156,3 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ responses }) => {
     </div>
   );
 };
-

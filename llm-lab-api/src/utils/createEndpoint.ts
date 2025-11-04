@@ -18,15 +18,12 @@ const errorHandler =
     },
     B,
   >(
-    handler: (t: A) => Promise<B>,
+    handler: (t: A) => Promise<B>
   ) =>
   async (inputs: A) => {
     const sanitizedInput = sanitizeObject(inputs.input);
-    const start = new Date();
     try {
       const output = await handler(inputs);
-      const end = new Date();
-      const duration = end.getTime() - start.getTime();
       return output;
     } catch (e) {
       const error = e as Error;
@@ -44,7 +41,8 @@ const errorHandler =
 const customResultHandler = {
   getPositiveResponse: defaultResultHandler.getPositiveResponse,
   getNegativeResponse: defaultResultHandler.getNegativeResponse,
-  async handler(args) {
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async handler(args: any) {
     const { error, request, input, response } = args;
     if (error instanceof OutputValidationError) {
       console.error("Output validation error:", {
@@ -83,11 +81,10 @@ export const createEndpoint = <
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
   R extends IOSchema<any>,
 >(
-  options: Parameters<typeof noAuthEndpointFactory.build<T, R>>[0],
+  options: Parameters<typeof noAuthEndpointFactory.build<T, R>>[0]
 ) => {
   return noAuthEndpointFactory.build({
     ...options,
     handler: errorHandler(options.handler),
   });
 };
-

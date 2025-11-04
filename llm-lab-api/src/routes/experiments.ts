@@ -3,9 +3,8 @@ import { z } from "zod";
 import { prisma } from "+/utils/prismaClient";
 import { errorOf, Errors } from "+/constants";
 import { geminiService, GeminiService } from "+/services/gemini";
-import { calculateMetrics } from "+/services/metrics";
+import { calculateMetrics, type QualityMetrics } from "+/services/metrics";
 
-// Parameter range schema
 const parameterRangeSchema = z.object({
   temperature: z.array(z.number().min(0).max(2)).optional(),
   topP: z.array(z.number().min(0).max(1)).optional(),
@@ -13,16 +12,14 @@ const parameterRangeSchema = z.object({
   maxOutputTokens: z.array(z.number().int().positive()).optional(),
 });
 
-// Create experiment input schema
 const createExperimentSchema = z.object({
   prompt: z
     .string()
     .min(1, "Prompt cannot be empty")
     .max(10000, "Prompt too long"),
-  parameterRanges: parameterRangeSchema.optional(),
+  parameterRanges: parameterRangeSchema,
 });
 
-// Response schema for API
 const responseSchema = z.object({
   id: z.string(),
   temperature: z.number(),
@@ -38,15 +35,13 @@ const responseSchema = z.object({
       readabilityScore: z.number(),
       structureScore: z.number(),
       overallScore: z.number(),
+      detailedMetrics: z.any().optional(),
     })
     .nullable(),
   createdAt: z.string(),
 });
 
 export const experimentRoutes = {
-  /**
-   * Create a new experiment
-   */
   create: createEndpoint({
     methods: ["post"],
     input: createExperimentSchema,
@@ -57,16 +52,37 @@ export const experimentRoutes = {
       parameterCombinationsCount: z.number(),
     }),
     handler: async ({ input: { prompt, parameterRanges } }) => {
-      // Generate parameter combinations if ranges provided
-      let parameterCombinationsCount = 1;
-      if (parameterRanges) {
-        const combinations = GeminiService.generateParameterCombinations({
-          temperature: parameterRanges.temperature,
-          topP: parameterRanges.topP,
-          topK: parameterRanges.topK,
-          maxOutputTokens: parameterRanges.maxOutputTokens,
-        });
-        parameterCombinationsCount = combinations.length;
+      if (!parameterRanges) {
+        throw new Error(
+          "Parameter ranges are required. Please provide at least one parameter range (temperature, topP, topK, or maxOutputTokens)."
+        );
+      }
+
+      const hasTemperature =
+        parameterRanges.temperature && parameterRanges.temperature.length > 0;
+      const hasTopP = parameterRanges.topP && parameterRanges.topP.length > 0;
+      const hasTopK = parameterRanges.topK && parameterRanges.topK.length > 0;
+      const hasMaxTokens =
+        parameterRanges.maxOutputTokens &&
+        parameterRanges.maxOutputTokens.length > 0;
+
+      if (!hasTemperature && !hasTopP && !hasTopK && !hasMaxTokens) {
+        throw new Error(
+          "At least one parameter range must be provided. Please specify values for temperature, topP, topK, or maxOutputTokens."
+        );
+      }
+
+      const combinations = GeminiService.generateParameterCombinations({
+        temperature: parameterRanges.temperature,
+        topP: parameterRanges.topP,
+        topK: parameterRanges.topK,
+        maxOutputTokens: parameterRanges.maxOutputTokens,
+      });
+
+      if (combinations.length === 0) {
+        throw new Error(
+          "No valid parameter combinations generated. Please ensure at least one parameter has valid values."
+        );
       }
 
       const experiment = await prisma.experiment.create({
@@ -79,14 +95,11 @@ export const experimentRoutes = {
         id: experiment.id,
         prompt: experiment.prompt,
         createdAt: experiment.createdAt.toISOString(),
-        parameterCombinationsCount,
+        parameterCombinationsCount: combinations.length,
       };
     },
   }),
 
-  /**
-   * Get experiment details
-   */
   get: createEndpoint({
     methods: ["get"],
     input: z.object({
@@ -123,32 +136,74 @@ export const experimentRoutes = {
         prompt: experiment.prompt,
         createdAt: experiment.createdAt.toISOString(),
         updatedAt: experiment.updatedAt.toISOString(),
-        responses: experiment.responses.map((r) => ({
-          id: r.id,
-          temperature: r.temperature,
-          topP: r.topP,
-          topK: r.topK,
-          maxTokens: r.maxTokens,
-          content: r.content,
-          metrics: r.metrics
-            ? {
-                coherenceScore: r.metrics.coherenceScore,
-                completenessScore: r.metrics.completenessScore,
-                lengthScore: r.metrics.lengthScore,
-                readabilityScore: r.metrics.readabilityScore,
-                structureScore: r.metrics.structureScore,
-                overallScore: r.metrics.overallScore,
+        responses: experiment.responses.map(
+          (r: {
+            id: string;
+            temperature: number;
+            topP: number;
+            topK: number | null;
+            maxTokens: number | null;
+            content: string;
+            rawResponse: string | null;
+            metrics: {
+              coherenceScore: number;
+              completenessScore: number;
+              lengthScore: number;
+              readabilityScore: number;
+              structureScore: number;
+              overallScore: number;
+            } | null;
+            createdAt: Date;
+          }) => {
+            let detailedMetrics: QualityMetrics["detailedMetrics"] = undefined;
+            if (r.rawResponse && typeof r.rawResponse === "string") {
+              try {
+                const parsed = JSON.parse(r.rawResponse) as unknown;
+                if (
+                  parsed &&
+                  typeof parsed === "object" &&
+                  parsed !== null &&
+                  "detailedMetrics" in parsed &&
+                  typeof (parsed as { detailedMetrics: unknown })
+                    .detailedMetrics === "object"
+                ) {
+                  detailedMetrics = (
+                    parsed as {
+                      detailedMetrics: QualityMetrics["detailedMetrics"];
+                    }
+                  ).detailedMetrics;
+                }
+              } catch {
+                // Invalid JSON, ignore
               }
-            : null,
-          createdAt: r.createdAt.toISOString(),
-        })),
+            }
+
+            return {
+              id: r.id,
+              temperature: r.temperature,
+              topP: r.topP,
+              topK: r.topK,
+              maxTokens: r.maxTokens,
+              content: r.content,
+              metrics: r.metrics
+                ? {
+                    coherenceScore: r.metrics.coherenceScore,
+                    completenessScore: r.metrics.completenessScore,
+                    lengthScore: r.metrics.lengthScore,
+                    readabilityScore: r.metrics.readabilityScore,
+                    structureScore: r.metrics.structureScore,
+                    overallScore: r.metrics.overallScore,
+                    detailedMetrics,
+                  }
+                : null,
+              createdAt: r.createdAt.toISOString(),
+            };
+          }
+        ),
       };
     },
   }),
 
-  /**
-   * Generate responses for an experiment with parameter combinations
-   */
   generate: createEndpoint({
     methods: ["post"],
     input: z.object({
@@ -176,7 +231,6 @@ export const experimentRoutes = {
       ),
     }),
     handler: async ({ input: { experimentId, parameterRanges } }) => {
-      // Verify experiment exists
       const experiment = await prisma.experiment.findUnique({
         where: { id: experimentId },
       });
@@ -185,14 +239,26 @@ export const experimentRoutes = {
         throw errorOf(Errors.NOT_FOUND);
       }
 
-      // Check if Gemini service is available
       if (!geminiService.isAvailable()) {
         throw new Error(
           "Gemini service is not configured. Please check GEMINI_API_KEY."
         );
       }
 
-      // Generate parameter combinations
+      const hasTemperature =
+        parameterRanges.temperature && parameterRanges.temperature.length > 0;
+      const hasTopP = parameterRanges.topP && parameterRanges.topP.length > 0;
+      const hasTopK = parameterRanges.topK && parameterRanges.topK.length > 0;
+      const hasMaxTokens =
+        parameterRanges.maxOutputTokens &&
+        parameterRanges.maxOutputTokens.length > 0;
+
+      if (!hasTemperature && !hasTopP && !hasTopK && !hasMaxTokens) {
+        throw new Error(
+          "At least one parameter range must be provided. Please specify values for temperature, topP, topK, or maxOutputTokens."
+        );
+      }
+
       const combinations = GeminiService.generateParameterCombinations({
         temperature: parameterRanges.temperature,
         topP: parameterRanges.topP,
@@ -201,25 +267,23 @@ export const experimentRoutes = {
       });
 
       if (combinations.length === 0) {
-        throw errorOf(Errors.INVALID_INPUT);
+        throw new Error(
+          "No valid parameter combinations generated. Please ensure at least one parameter has valid values."
+        );
       }
 
-      // Generate responses from Gemini
       const geminiResults = await geminiService.generateMultipleResponses(
         experiment.prompt,
         combinations
       );
 
-      // Store responses and calculate metrics
       const storedResponses = [];
       for (const { parameters, response } of geminiResults) {
         try {
-          // Calculate metrics
           const metrics = calculateMetrics(response.content, {
             prompt: experiment.prompt,
           });
 
-          // Store in database
           const storedResponse = await prisma.response.create({
             data: {
               experimentId,
@@ -228,7 +292,10 @@ export const experimentRoutes = {
               topK: parameters.topK ?? null,
               maxTokens: parameters.maxOutputTokens ?? null,
               content: response.content,
-              rawResponse: response.rawResponse as object,
+              rawResponse: JSON.stringify({
+                ...(response.rawResponse as object),
+                detailedMetrics: metrics.detailedMetrics,
+              }),
               metrics: {
                 create: {
                   coherenceScore: metrics.coherenceScore,
@@ -263,7 +330,6 @@ export const experimentRoutes = {
             `Failed to store response for parameters ${JSON.stringify(parameters)}:`,
             error
           );
-          // Continue with other responses even if one fails
         }
       }
 
@@ -276,9 +342,6 @@ export const experimentRoutes = {
     },
   }),
 
-  /**
-   * Get all responses for an experiment with optional sorting
-   */
   getResponses: createEndpoint({
     methods: ["get"],
     input: z.object({
@@ -300,7 +363,6 @@ export const experimentRoutes = {
     handler: async ({
       input: { experimentId, sortBy = "overallScore", order = "desc" },
     }) => {
-      // Verify experiment exists
       const experiment = await prisma.experiment.findUnique({
         where: { id: experimentId },
       });
@@ -309,8 +371,9 @@ export const experimentRoutes = {
         throw errorOf(Errors.NOT_FOUND);
       }
 
-      // Build orderBy clause
-      let orderBy: Record<string, "asc" | "desc"> = { createdAt: "desc" };
+      let orderBy:
+        | Record<string, "asc" | "desc">
+        | { metrics: Record<string, "asc" | "desc"> } = { createdAt: "desc" };
       if (sortBy === "temperature" || sortBy === "createdAt") {
         orderBy = { [sortBy]: order };
       } else if (sortBy.endsWith("Score")) {
@@ -318,7 +381,7 @@ export const experimentRoutes = {
           metrics: {
             [sortBy]: order,
           },
-        } as any;
+        } as { metrics: Record<string, "asc" | "desc"> };
       }
 
       const responses = await prisma.response.findMany({
@@ -330,32 +393,74 @@ export const experimentRoutes = {
       });
 
       return {
-        responses: responses.map((r) => ({
-          id: r.id,
-          temperature: r.temperature,
-          topP: r.topP,
-          topK: r.topK,
-          maxTokens: r.maxTokens,
-          content: r.content,
-          metrics: r.metrics
-            ? {
-                coherenceScore: r.metrics.coherenceScore,
-                completenessScore: r.metrics.completenessScore,
-                lengthScore: r.metrics.lengthScore,
-                readabilityScore: r.metrics.readabilityScore,
-                structureScore: r.metrics.structureScore,
-                overallScore: r.metrics.overallScore,
+        responses: responses.map(
+          (r: {
+            id: string;
+            temperature: number;
+            topP: number;
+            topK: number | null;
+            maxTokens: number | null;
+            content: string;
+            rawResponse: string | null;
+            metrics: {
+              coherenceScore: number;
+              completenessScore: number;
+              lengthScore: number;
+              readabilityScore: number;
+              structureScore: number;
+              overallScore: number;
+            } | null;
+            createdAt: Date;
+          }) => {
+            let detailedMetrics: QualityMetrics["detailedMetrics"] = undefined;
+            if (r.rawResponse && typeof r.rawResponse === "string") {
+              try {
+                const parsed = JSON.parse(r.rawResponse) as unknown;
+                if (
+                  parsed &&
+                  typeof parsed === "object" &&
+                  parsed !== null &&
+                  "detailedMetrics" in parsed &&
+                  typeof (parsed as { detailedMetrics: unknown })
+                    .detailedMetrics === "object"
+                ) {
+                  detailedMetrics = (
+                    parsed as {
+                      detailedMetrics: QualityMetrics["detailedMetrics"];
+                    }
+                  ).detailedMetrics;
+                }
+              } catch {
+                // Invalid JSON, ignore
               }
-            : null,
-          createdAt: r.createdAt.toISOString(),
-        })),
+            }
+
+            return {
+              id: r.id,
+              temperature: r.temperature,
+              topP: r.topP,
+              topK: r.topK,
+              maxTokens: r.maxTokens,
+              content: r.content,
+              metrics: r.metrics
+                ? {
+                    coherenceScore: r.metrics.coherenceScore,
+                    completenessScore: r.metrics.completenessScore,
+                    lengthScore: r.metrics.lengthScore,
+                    readabilityScore: r.metrics.readabilityScore,
+                    structureScore: r.metrics.structureScore,
+                    overallScore: r.metrics.overallScore,
+                    detailedMetrics,
+                  }
+                : null,
+              createdAt: r.createdAt.toISOString(),
+            };
+          }
+        ),
       };
     },
   }),
 
-  /**
-   * Export experiment data
-   */
   export: createEndpoint({
     methods: ["get"],
     input: z.object({
@@ -399,32 +504,49 @@ export const experimentRoutes = {
             prompt: experiment.prompt,
             createdAt: experiment.createdAt.toISOString(),
             updatedAt: experiment.updatedAt.toISOString(),
-            responses: experiment.responses.map((r) => ({
-              id: r.id,
-              parameters: {
-                temperature: r.temperature,
-                topP: r.topP,
-                topK: r.topK,
-                maxTokens: r.maxTokens,
-              },
-              content: r.content,
-              metrics: r.metrics
-                ? {
-                    coherenceScore: r.metrics.coherenceScore,
-                    completenessScore: r.metrics.completenessScore,
-                    lengthScore: r.metrics.lengthScore,
-                    readabilityScore: r.metrics.readabilityScore,
-                    structureScore: r.metrics.structureScore,
-                    overallScore: r.metrics.overallScore,
-                  }
-                : null,
-              createdAt: r.createdAt.toISOString(),
-            })),
+            responses: experiment.responses.map(
+              (r: {
+                id: string;
+                temperature: number;
+                topP: number;
+                topK: number | null;
+                maxTokens: number | null;
+                content: string;
+                metrics: {
+                  coherenceScore: number;
+                  completenessScore: number;
+                  lengthScore: number;
+                  readabilityScore: number;
+                  structureScore: number;
+                  overallScore: number;
+                } | null;
+                createdAt: Date;
+              }) => ({
+                id: r.id,
+                parameters: {
+                  temperature: r.temperature,
+                  topP: r.topP,
+                  topK: r.topK,
+                  maxTokens: r.maxTokens,
+                },
+                content: r.content,
+                metrics: r.metrics
+                  ? {
+                      coherenceScore: r.metrics.coherenceScore,
+                      completenessScore: r.metrics.completenessScore,
+                      lengthScore: r.metrics.lengthScore,
+                      readabilityScore: r.metrics.readabilityScore,
+                      structureScore: r.metrics.structureScore,
+                      overallScore: r.metrics.overallScore,
+                    }
+                  : null,
+                createdAt: r.createdAt.toISOString(),
+              })
+            ),
           },
         };
       }
 
-      // CSV format
       const headers = [
         "Response ID",
         "Temperature",
@@ -441,25 +563,43 @@ export const experimentRoutes = {
         "Created At",
       ];
 
-      const rows = experiment.responses.map((r) => [
-        r.id,
-        r.temperature.toString(),
-        r.topP.toString(),
-        (r.topK ?? "").toString(),
-        (r.maxTokens ?? "").toString(),
-        `"${r.content.replace(/"/g, '""')}"`, // Escape quotes in CSV
-        (r.metrics?.coherenceScore ?? "").toString(),
-        (r.metrics?.completenessScore ?? "").toString(),
-        (r.metrics?.lengthScore ?? "").toString(),
-        (r.metrics?.readabilityScore ?? "").toString(),
-        (r.metrics?.structureScore ?? "").toString(),
-        (r.metrics?.overallScore ?? "").toString(),
-        r.createdAt.toISOString(),
-      ]);
+      const rows = experiment.responses.map(
+        (r: {
+          id: string;
+          temperature: number;
+          topP: number;
+          topK: number | null;
+          maxTokens: number | null;
+          content: string;
+          metrics: {
+            coherenceScore: number;
+            completenessScore: number;
+            lengthScore: number;
+            readabilityScore: number;
+            structureScore: number;
+            overallScore: number;
+          } | null;
+          createdAt: Date;
+        }) => [
+          r.id,
+          r.temperature.toString(),
+          r.topP.toString(),
+          (r.topK ?? "").toString(),
+          (r.maxTokens ?? "").toString(),
+          `"${r.content.replace(/"/g, '""')}"`,
+          (r.metrics?.coherenceScore ?? "").toString(),
+          (r.metrics?.completenessScore ?? "").toString(),
+          (r.metrics?.lengthScore ?? "").toString(),
+          (r.metrics?.readabilityScore ?? "").toString(),
+          (r.metrics?.structureScore ?? "").toString(),
+          (r.metrics?.overallScore ?? "").toString(),
+          r.createdAt.toISOString(),
+        ]
+      );
 
       const csvContent = [
         headers.join(","),
-        ...rows.map((row) => row.join(",")),
+        ...rows.map((row: string[]) => row.join(",")),
       ].join("\n");
 
       return {
@@ -469,9 +609,6 @@ export const experimentRoutes = {
     },
   }),
 
-  /**
-   * List all experiments (for dashboard/homepage)
-   */
   list: createEndpoint({
     methods: ["get"],
     input: z.object({
@@ -510,13 +647,21 @@ export const experimentRoutes = {
       ]);
 
       return {
-        experiments: experiments.map((e) => ({
-          id: e.id,
-          prompt: e.prompt,
-          responseCount: e._count.responses,
-          createdAt: e.createdAt.toISOString(),
-          updatedAt: e.updatedAt.toISOString(),
-        })),
+        experiments: experiments.map(
+          (e: {
+            id: string;
+            prompt: string;
+            createdAt: Date;
+            updatedAt: Date;
+            _count: { responses: number };
+          }) => ({
+            id: e.id,
+            prompt: e.prompt,
+            responseCount: e._count.responses,
+            createdAt: e.createdAt.toISOString(),
+            updatedAt: e.updatedAt.toISOString(),
+          })
+        ),
         total,
       };
     },

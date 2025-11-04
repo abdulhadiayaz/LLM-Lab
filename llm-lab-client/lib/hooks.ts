@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   experimentsApi,
   type CreateExperimentRequest,
   type GenerateRequest,
 } from "./api";
+import { type ParameterRanges } from "./constants";
 
 // Query keys
 export const queryKeys = {
@@ -18,8 +20,7 @@ export function useCreateExperiment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateExperimentRequest) =>
-      experimentsApi.create(data),
+    mutationFn: (data: CreateExperimentRequest) => experimentsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.experiments });
     },
@@ -60,7 +61,7 @@ export function useGenerateResponses() {
 export function useExperimentResponses(
   experimentId: string,
   sortBy?: string,
-  order?: "asc" | "desc",
+  order?: "asc" | "desc"
 ) {
   return useQuery({
     queryKey: queryKeys.responses(experimentId, sortBy, order),
@@ -81,3 +82,34 @@ export function useExportExperiment() {
   });
 }
 
+export function useParameterValidation(parameterRanges: ParameterRanges) {
+  const validation = useMemo(() => {
+    const missingParams: string[] = [];
+
+    if (
+      !parameterRanges.temperature ||
+      parameterRanges.temperature.length === 0
+    ) {
+      missingParams.push("Temperature");
+    }
+    if (!parameterRanges.topP || parameterRanges.topP.length === 0) {
+      missingParams.push("Top P");
+    }
+    if (!parameterRanges.topK || parameterRanges.topK.length === 0) {
+      missingParams.push("Top K");
+    }
+    if (
+      !parameterRanges.maxOutputTokens ||
+      parameterRanges.maxOutputTokens.length === 0
+    ) {
+      missingParams.push("Max Output Tokens");
+    }
+
+    return {
+      isValid: missingParams.length === 0,
+      missingParams,
+    };
+  }, [parameterRanges]);
+
+  return validation;
+}

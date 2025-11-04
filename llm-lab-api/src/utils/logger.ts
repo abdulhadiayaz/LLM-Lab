@@ -19,13 +19,13 @@ const colors: Record<string, string> = {
 const log = (
   level: "debug" | "info" | "warn" | "error",
   message: string,
-  meta?: unknown,
+  meta?: unknown
 ) => {
   const now = new Date().toISOString();
   const [sanitizedMsg, sanitizedMeta] = sanitizeLogs(message, meta);
   let output = `${now} ${colors[level]}: ${sanitizedMsg}`;
   if (isDefined(sanitizedMeta)) {
-    if (typeof sanitizedMeta === "object")
+    if (typeof sanitizedMeta === "object" && sanitizedMeta !== null) {
       output +=
         " " +
         inspect(sanitizedMeta, {
@@ -33,7 +33,15 @@ const log = (
           colors: true,
           compact: true,
         });
-    else output += String(sanitizedMeta);
+    } else if (
+      typeof sanitizedMeta === "string" ||
+      typeof sanitizedMeta === "number" ||
+      typeof sanitizedMeta === "boolean"
+    ) {
+      output += " " + String(sanitizedMeta);
+    } else {
+      output += " " + JSON.stringify(sanitizedMeta);
+    }
   }
   console[level](output);
 };
@@ -47,4 +55,3 @@ export const customLogger: Record<
   warn: (msg, meta) => log("warn", msg, meta),
   error: (msg, meta) => log("error", msg, meta),
 };
-

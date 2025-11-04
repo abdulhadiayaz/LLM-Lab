@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface MetricsDisplayProps {
+type MetricsDisplayProps = {
   metrics: {
     coherenceScore: number;
     completenessScore: number;
@@ -11,7 +11,7 @@ interface MetricsDisplayProps {
     overallScore: number;
   };
   compact?: boolean;
-}
+};
 
 const ScoreBar: React.FC<{
   label: string;

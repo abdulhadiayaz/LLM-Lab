@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -32,7 +32,7 @@ model Response {
 
   // Generated Content
   content         String
-  rawResponse     Json?     // Store full API response
+  rawResponse     String?   // Store full API response as JSON string
 
   // Quality Metrics
   metrics         ResponseMetrics?

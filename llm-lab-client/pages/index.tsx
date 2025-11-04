@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { ExperimentForm } from "@/components/experiment/ExperimentForm";
 import { useExperimentsList } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Experiment } from "@/lib/api";
@@ -12,7 +12,6 @@ export default function Home() {
   const router = useRouter();
   const { data: experimentsData, isLoading } = useExperimentsList(5, 0);
 
-  console.log(experimentsData);
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -25,14 +24,50 @@ export default function Home() {
           </p>
         </div>
 
+        {/* Features Section */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-3xl mb-4">🧪</div>
+              <h3 className="text-lg font-semibold mb-2">
+                Parameter Experimentation
+              </h3>
+              <p className="text-sm text-gray-600">
+                Test different combinations of temperature, top_p, top_k, and
+                max_tokens to see how they affect responses.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-3xl mb-4">📊</div>
+              <h3 className="text-lg font-semibold mb-2">Quality Metrics</h3>
+              <p className="text-sm text-gray-600">
+                Automatically calculate coherence, completeness, readability,
+                and structure scores for each response.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-3xl mb-4">🔍</div>
+              <h3 className="text-lg font-semibold mb-2">Compare & Analyze</h3>
+              <p className="text-sm text-gray-600">
+                Side-by-side comparison of responses and export your experiments
+                for later analysis.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Experiment Form - Takes 2 columns on large screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-16">
           <div className="lg:col-span-2">
             <ExperimentForm />
           </div>
 
-          {/* Recent Experiments - Takes 1 column */}
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
@@ -40,9 +75,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
-                  </div>
+                  <LoadingSpinner size="sm" className="py-4" />
                 ) : experimentsData?.experiments &&
                   experimentsData.experiments.length > 0 ? (
                   <div className="space-y-3">
@@ -88,44 +121,6 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Features Section */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-3xl mb-4">🧪</div>
-              <h3 className="text-lg font-semibold mb-2">
-                Parameter Experimentation
-              </h3>
-              <p className="text-sm text-gray-600">
-                Test different combinations of temperature, top_p, top_k, and
-                max_tokens to see how they affect responses.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-3xl mb-4">📊</div>
-              <h3 className="text-lg font-semibold mb-2">Quality Metrics</h3>
-              <p className="text-sm text-gray-600">
-                Automatically calculate coherence, completeness, readability,
-                and structure scores for each response.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-3xl mb-4">🔍</div>
-              <h3 className="text-lg font-semibold mb-2">Compare & Analyze</h3>
-              <p className="text-sm text-gray-600">
-                Side-by-side comparison of responses and export your experiments
-                for later analysis.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

@@ -21,7 +21,7 @@ export interface GeminiResponse {
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI | null = null;
-  private model: string = "gemini-2.5-flash";
+  private model = "gemini-2.5-flash";
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -40,9 +40,6 @@ export class GeminiService {
     }
   }
 
-  /**
-   * Generate a response from Gemini with specified parameters
-   */
   async generateResponse(
     prompt: string,
     parameters: GeminiParameters = {}
@@ -70,10 +67,10 @@ export class GeminiService {
       });
 
       const result = await model.generateContent(prompt);
-      const response = await result.response;
+      const response = result.response;
 
       const content = response.text();
-      const finishReason = response.candidates?.[0]?.finishReason || "unknown";
+      const finishReason = response.candidates?.[0]?.finishReason ?? "unknown";
 
       return {
         content,
@@ -86,12 +83,10 @@ export class GeminiService {
     } catch (error) {
       const err = error as Error;
 
-      // Handle rate limiting
       if (err.message.includes("429") || err.message.includes("rate limit")) {
         throw new Error("Rate limit exceeded. Please try again later.");
       }
 
-      // Handle quota exceeded
       if (
         err.message.includes("quota") ||
         err.message.includes("RESOURCE_EXHAUSTED")
@@ -99,7 +94,6 @@ export class GeminiService {
         throw new Error("API quota exceeded. Please check your billing.");
       }
 
-      // Handle invalid API key
       if (err.message.includes("API key") || err.message.includes("401")) {
         throw new Error("Invalid API key. Please check your GEMINI_API_KEY.");
       }
@@ -109,10 +103,6 @@ export class GeminiService {
     }
   }
 
-  /**
-   * Generate multiple responses with different parameter combinations
-   * Returns an array of responses with their corresponding parameters
-   */
   async generateMultipleResponses(
     prompt: string,
     parameterCombinations: GeminiParameters[]
@@ -124,13 +114,11 @@ export class GeminiService {
       response: GeminiResponse;
     }> = [];
 
-    // Generate responses sequentially to avoid rate limiting issues
     for (const params of parameterCombinations) {
       try {
         const response = await this.generateResponse(prompt, params);
         results.push({ parameters: params, response });
 
-        // Small delay to avoid hitting rate limits
         if (parameterCombinations.length > 1) {
           await new Promise((resolve) => setTimeout(resolve, 200));
         }
@@ -141,8 +129,6 @@ export class GeminiService {
           err
         );
 
-        // Continue with other combinations even if one fails
-        // Store error information in the response
         results.push({
           parameters: params,
           response: {
@@ -157,28 +143,31 @@ export class GeminiService {
     return results;
   }
 
-  /**
-   * Generate all combinations of parameters from ranges
-   */
   static generateParameterCombinations(params: {
     temperature?: number[];
     topP?: number[];
     topK?: number[];
     maxOutputTokens?: number[];
   }): GeminiParameters[] {
-    const {
-      temperature = [0.7],
-      topP = [0.95],
-      topK = [40],
-      maxOutputTokens = [2048],
-    } = params;
+    if (!params.temperature || params.temperature.length === 0) {
+      throw new Error("Temperature parameter range is required");
+    }
+    if (!params.topP || params.topP.length === 0) {
+      throw new Error("Top P parameter range is required");
+    }
+    if (!params.topK || params.topK.length === 0) {
+      throw new Error("Top K parameter range is required");
+    }
+    if (!params.maxOutputTokens || params.maxOutputTokens.length === 0) {
+      throw new Error("Max Output Tokens parameter range is required");
+    }
 
     const combinations: GeminiParameters[] = [];
 
-    for (const temp of temperature) {
-      for (const tp of topP) {
-        for (const tk of topK) {
-          for (const tokens of maxOutputTokens) {
+    for (const temp of params.temperature) {
+      for (const tp of params.topP) {
+        for (const tk of params.topK) {
+          for (const tokens of params.maxOutputTokens) {
             combinations.push({
               temperature: temp,
               topP: tp,
@@ -193,13 +182,9 @@ export class GeminiService {
     return combinations;
   }
 
-  /**
-   * Check if the service is available
-   */
   isAvailable(): boolean {
     return this.genAI !== null;
   }
 }
 
-// Export singleton instance
 export const geminiService = new GeminiService();

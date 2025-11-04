@@ -20,11 +20,6 @@ const prismaBase = new PrismaClient({
       level: "query",
     },
   ],
-  datasources: {
-    db: {
-      url: `${process.env.DATABASE_URL}?connection_limit=${process.env.NODE_ENV !== "production" ? 1 : 10}&pool_timeout=0`,
-    },
-  },
 });
 
 prismaBase.$on("query", (e) => {

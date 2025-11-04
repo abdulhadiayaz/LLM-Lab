@@ -1,38 +1,71 @@
 import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ParameterRangeInput } from "./ParameterRangeInput";
-import { useCreateExperiment } from "@/lib/hooks";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { ParameterInputsGrid } from "./ParameterInputsGrid";
+import { ParameterValidation } from "./ParameterValidation";
+import {
+  useCreateExperiment,
+  useGenerateResponses,
+  useParameterValidation,
+} from "@/lib/hooks";
 import { useRouter } from "next/router";
+import { DEFAULT_PARAMETER_RANGES } from "@/lib/constants";
 
 export const ExperimentForm: React.FC = () => {
   const router = useRouter();
   const createMutation = useCreateExperiment();
+  const generateMutation = useGenerateResponses();
 
   const [prompt, setPrompt] = useState("");
-  const [parameterRanges, setParameterRanges] = useState({
-    temperature: [0.1, 0.5, 0.9] as number[],
-    topP: [0.95] as number[],
-    topK: [40] as number[],
-    maxOutputTokens: [2048] as number[],
-  });
+  const [parameterRanges, setParameterRanges] = useState(
+    DEFAULT_PARAMETER_RANGES
+  );
+
+  const { isValid, missingParams } = useParameterValidation(parameterRanges);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
 
     if (!prompt.trim()) {
       alert("Please enter a prompt");
       return;
     }
 
+    if (!isValid) {
+      alert(
+        `The following parameter ranges are required but missing:\n${missingParams.join(
+          ", "
+        )}\n\nPlease provide values for all parameters.`
+      );
+      return;
+    }
+
     try {
-      const result = await createMutation.mutateAsync({
+      const result = (await createMutation.mutateAsync({
         prompt: prompt.trim(),
         parameterRanges,
-      });
+      })) as { id: string };
 
-      // Navigate to experiment page
+      try {
+        await generateMutation.mutateAsync({
+          experimentId: result.id,
+          parameterRanges,
+        });
+      } catch (generateError) {
+        console.error("Failed to generate responses:", generateError);
+        alert(
+          "Experiment created but response generation failed. You can try generating responses on the experiment page."
+        );
+      }
+
       router.push(`/experiment/${result.id}`);
     } catch (error) {
       console.error("Failed to create experiment:", error);
@@ -69,6 +102,16 @@ export const ExperimentForm: React.FC = () => {
               rows={6}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                // Prevent form submission on Enter key
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  // Allow Cmd/Ctrl+Enter to submit
+                  return;
+                }
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Enter your prompt here..."
               className="w-full"
               required
@@ -84,51 +127,9 @@ export const ExperimentForm: React.FC = () => {
               generated.
             </p>
 
-            <ParameterRangeInput
-              label="Temperature (0.0 - 2.0)"
-              values={parameterRanges.temperature}
-              onChange={(values) =>
-                setParameterRanges({ ...parameterRanges, temperature: values })
-              }
-              min={0}
-              max={2}
-              step={0.1}
-            />
-
-            <ParameterRangeInput
-              label="Top P (0.0 - 1.0)"
-              values={parameterRanges.topP}
-              onChange={(values) =>
-                setParameterRanges({ ...parameterRanges, topP: values })
-              }
-              min={0}
-              max={1}
-              step={0.05}
-            />
-
-            <ParameterRangeInput
-              label="Top K (positive integers)"
-              values={parameterRanges.topK}
-              onChange={(values) =>
-                setParameterRanges({ ...parameterRanges, topK: values })
-              }
-              min={1}
-              max={100}
-              step={1}
-            />
-
-            <ParameterRangeInput
-              label="Max Output Tokens"
-              values={parameterRanges.maxOutputTokens}
-              onChange={(values) =>
-                setParameterRanges({
-                  ...parameterRanges,
-                  maxOutputTokens: values,
-                })
-              }
-              min={1}
-              max={8192}
-              step={256}
+            <ParameterInputsGrid
+              parameterRanges={parameterRanges}
+              onChange={setParameterRanges}
             />
           </div>
 
@@ -145,14 +146,28 @@ export const ExperimentForm: React.FC = () => {
 
           <Button
             type="submit"
-            disabled={createMutation.isPending || !prompt.trim()}
+            disabled={
+              createMutation.isPending ||
+              generateMutation.isPending ||
+              !prompt.trim() ||
+              !isValid
+            }
             className="w-full"
+            size="lg"
           >
-            {createMutation.isPending ? "Creating..." : "Create Experiment"}
+            {createMutation.isPending || generateMutation.isPending ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                Creating & Generating...
+              </>
+            ) : (
+              <>🚀 Create Experiment & Generate Responses</>
+            )}
           </Button>
+
+          <ParameterValidation parameterRanges={parameterRanges} />
         </form>
       </CardContent>
     </Card>
   );
 };
-

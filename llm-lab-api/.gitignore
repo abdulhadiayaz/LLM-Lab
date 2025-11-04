@@ -6,4 +6,7 @@ prisma/generated
 *.log
 tsconfig.tsbuildinfo
 .DS_Store
+data/
+*.db
+*.db-journal
 

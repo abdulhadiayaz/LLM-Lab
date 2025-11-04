@@ -7,14 +7,14 @@ import fileUpload from "express-fileupload";
 
 export const config = createConfig({
   server: {
-    listen: { port: Number(process.env.PORT) || 80 },
+    listen: { port: Number(process.env.PORT) ?? 80 },
     compression: true,
     jsonParser: express.json({ limit: "50mb" }),
     rawParser: express.raw(),
 
     beforeRouting: ({ app }) => {
       app.options("*", (req, res) => {
-        res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+        res.header("Access-Control-Allow-Origin", req.headers.origin ?? "*");
         res.header("Access-Control-Allow-Credentials", "true");
         res.header(
           "Access-Control-Allow-Methods",
@@ -40,7 +40,6 @@ export const config = createConfig({
         })
       );
 
-      // Serve robots.txt to prevent search engines from crawling the API
       app.get("/robots.txt", (req, res) => {
         res.setHeader("Content-Type", "text/plain");
         res.send(`User-agent: *
@@ -53,7 +52,7 @@ Disallow: /
   cors: ({ defaultHeaders, request }) => ({
     ...defaultHeaders,
     "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Origin": request.headers.origin || "*",
+    "Access-Control-Allow-Origin": request.headers.origin ?? "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers":
       "Content-Type, Authorization, X-Requested-With",
