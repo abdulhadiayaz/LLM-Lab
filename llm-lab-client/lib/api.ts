@@ -9,7 +9,6 @@ export const api = axios.create({
   },
 });
 
-// Types
 export type Experiment = {
   id: string;
   prompt: string;
@@ -121,7 +120,6 @@ export type GenerateRequest = {
   parameterRanges: ParameterRanges;
 };
 
-// API functions
 export const experimentsApi = {
   create: async (data: CreateExperimentRequest) => {
     const response = await api.post("/experiments/create", data);

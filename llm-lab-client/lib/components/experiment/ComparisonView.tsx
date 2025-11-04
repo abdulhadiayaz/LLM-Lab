@@ -1,5 +1,10 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/lib/components/ui/card";
 import { Response } from "@/lib/api";
 
 type ComparisonViewProps = {
@@ -52,7 +57,6 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
   responses,
   selectedIds,
 }) => {
-  // Maintain the selection order and map to original response index
   const selectedResponses: ResponseWithIndex[] = selectedIds
     .map((id) => {
       const response = responses.find((r) => r.id === id);

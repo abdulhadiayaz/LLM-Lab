@@ -7,7 +7,6 @@ import {
 } from "./api";
 import { type ParameterRanges } from "./constants";
 
-// Query keys
 export const queryKeys = {
   experiments: ["experiments"] as const,
   experiment: (id: string) => ["experiments", id] as const,
@@ -15,7 +14,6 @@ export const queryKeys = {
     ["experiments", id, "responses", sortBy, order] as const,
 };
 
-// Hooks
 export function useCreateExperiment() {
   const queryClient = useQueryClient();
 

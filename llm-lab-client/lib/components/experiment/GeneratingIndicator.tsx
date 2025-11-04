@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/lib/components/ui/card";
 
 export const GeneratingIndicator: React.FC = () => {
   return (
@@ -20,4 +20,3 @@ export const GeneratingIndicator: React.FC = () => {
     </Card>
   );
 };
-

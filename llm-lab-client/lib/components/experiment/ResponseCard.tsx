@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/lib/components/ui/card";
 import { Response } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 

@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { Textarea } from "@/lib/components/ui/textarea";
+import { Button } from "@/lib/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from "@/lib/components/ui/card";
 import { ParameterInputsGrid } from "./ParameterInputsGrid";
 import { ParameterValidation } from "./ParameterValidation";
 import {
@@ -103,9 +103,7 @@ export const ExperimentForm: React.FC = () => {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
-                // Prevent form submission on Enter key
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  // Allow Cmd/Ctrl+Enter to submit
                   return;
                 }
                 if (e.key === "Enter") {

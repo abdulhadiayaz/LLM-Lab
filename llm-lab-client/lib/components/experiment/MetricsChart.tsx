@@ -13,7 +13,12 @@ import {
   Cell,
 } from "recharts";
 import { Response } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/lib/components/ui/card";
 
 type MetricsChartProps = {
   responses: Response[];
@@ -32,7 +37,6 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ responses }) => {
     return null;
   }
 
-  // Prepare data for bar chart
   const barData = responsesWithMetrics.map((response, index) => ({
     name: `Response ${index + 1}`,
     coherence: (response.metrics?.coherenceScore || 0) * 100,
@@ -43,7 +47,6 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ responses }) => {
     overall: (response.metrics?.overallScore || 0) * 100,
   }));
 
-  // Prepare data for scatter plot (temperature vs overall score)
   const scatterData = responsesWithMetrics.map((response) => ({
     temperature: response.temperature,
     overallScore: (response.metrics?.overallScore || 0) * 100,

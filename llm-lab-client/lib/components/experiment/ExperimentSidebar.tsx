@@ -1,6 +1,11 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/lib/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/lib/components/ui/card";
 import { ProgressBar } from "./ProgressBar";
 import { type Response, type ExperimentWithResponses } from "@/lib/api";
 

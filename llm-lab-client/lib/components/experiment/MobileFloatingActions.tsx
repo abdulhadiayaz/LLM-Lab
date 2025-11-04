@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/lib/components/ui/button";
 
 type MobileFloatingActionsProps = {
   selectedCount: number;
@@ -37,4 +37,3 @@ export const MobileFloatingActions: React.FC<MobileFloatingActionsProps> = ({
     </div>
   );
 };
-

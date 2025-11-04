@@ -1,6 +1,6 @@
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/lib/components/ui/card";
+import { Button } from "@/lib/components/ui/button";
 import { ResponseCard } from "./ResponseCard";
 import { type Response } from "@/lib/api";
 
@@ -83,4 +83,3 @@ export const ResponsesList: React.FC<ResponsesListProps> = ({
     </div>
   );
 };
-

@@ -1,12 +1,19 @@
 import React from "react";
 import Image from "next/image";
-import { ExperimentForm } from "@/components/experiment/ExperimentForm";
+import type { GetServerSideProps } from "next";
+import { ExperimentForm } from "@/lib/components/experiment/ExperimentForm";
 import { useExperimentsList } from "@/lib/hooks";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoadingSpinner } from "@/components/ui/loading";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/lib/components/ui/card";
+import { LoadingSpinner } from "@/lib/components/ui/loading";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Experiment } from "@/lib/api";
+import { getServerSideExperiments } from "@/lib/getServerSideProps";
 
 export default function Home() {
   const { data: experimentsData, isLoading } = useExperimentsList(5, 0);
@@ -193,3 +200,10 @@ export default function Home() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const props = await getServerSideExperiments(5, 0);
+  return {
+    props,
+  };
+};
