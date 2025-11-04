@@ -7,8 +7,10 @@
     "dev": "cross-env NODE_ENV=local nodemon --ignore prisma/generated/ --ext ts --exec 'npm run gen-client && tsx index.ts'",
     "build": "npm run gen-client && tsup index.ts",
     "gen-client": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy",
     "lint": "eslint ./src ",
-    "start": "cross-env NODE_ENV=production node dist/index.js"
+    "start": "cross-env NODE_ENV=production node dist/index.js",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
